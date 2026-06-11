@@ -203,7 +203,7 @@ export async function generateQuestions(filePath: string, count: number): Promis
   log.info('generate', `Reading ${basename(filePath)} (${sizeMb.toFixed(1)} MB) · ${count} questions · ${MODEL()}`)
   const lecture: Lecture =
     provider() === 'openrouter'
-      ? { provider: 'openrouter', lecture: fileToOpenRouterPart(filePath) }
+      ? { provider: 'openrouter', lecture: await fileToOpenRouterPart(filePath) }
       : { provider: 'anthropic', block: fileToContentBlock(filePath) }
   const parts = Math.ceil(count / BATCH_SIZE)
   const sizes = Array.from({ length: parts }, (_, i) => Math.floor(count / parts) + (i < count % parts ? 1 : 0))

@@ -42,7 +42,17 @@
       "Bash(ls node_modules/electron/dist/Electron.app/Contents/MacOS)",
       "Bash(cat node_modules/electron/path.txt)",
       "Bash(ls out/main/index.js)",
-      "Bash(npm i *)"
+      "Bash(npm i *)",
+      "Bash(mdfind -name \"2_MD137 Nerve RMP.pdf\")",
+      "Read(//Users/alikhan/Downloads/**)",
+      "Bash(mkdir -p /tmp/pdftest)",
+      "Bash(npm init *)",
+      "Bash(ls src/*.d.ts src/main/*.d.ts)",
+      "Bash(cat tsconfig.json)",
+      "Bash(cat tsconfig.node.json)",
+      "Bash(grep -qiE \"ready|Osler ready|electron.*started|VITE.*ready\" /tmp/osler-dev.log)",
+      "Bash(break)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }

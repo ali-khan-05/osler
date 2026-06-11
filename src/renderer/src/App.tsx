@@ -2,16 +2,21 @@ import { useEffect, useState } from 'react'
 import type { QuestionSet } from '../../shared/types'
 import Home from './components/Home'
 import NewSet from './components/NewSet'
+import Onboarding from './components/Onboarding'
 import Quiz from './components/Quiz'
 import Results from './components/Results'
 import Settings from './components/Settings'
 import DevConsole from './components/DevConsole'
 import { LogProvider } from './logs'
 
-type View = 'home' | 'new' | 'quiz' | 'results' | 'settings'
+type View = 'onboarding' | 'home' | 'new' | 'quiz' | 'results' | 'settings'
+
+const ONBOARDED_KEY = 'osler-onboarded'
 
 export default function App(): React.JSX.Element {
-  const [view, setView] = useState<View>('home')
+  const [view, setView] = useState<View>(() =>
+    localStorage.getItem(ONBOARDED_KEY) ? 'home' : 'onboarding'
+  )
   const [sets, setSets] = useState<QuestionSet[]>([])
   const [activeSet, setActiveSet] = useState<QuestionSet | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -87,6 +92,14 @@ export default function App(): React.JSX.Element {
     <LogProvider>
       {/* pb-8 keeps content clear of the fixed status bar */}
       <div className="min-h-screen pb-8">
+        {view === 'onboarding' && (
+          <Onboarding
+            onDone={() => {
+              localStorage.setItem(ONBOARDED_KEY, '1')
+              setView('home')
+            }}
+          />
+        )}
         {view === 'home' && (
           <Home
             sets={sets}

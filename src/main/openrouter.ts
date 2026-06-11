@@ -1,6 +1,9 @@
 import fs from 'fs'
 import { extname, basename } from 'path'
+// pdf-parse's index.js runs a debug self-test on import; the lib entry skips it.
+import pdfParse from 'pdf-parse/lib/pdf-parse.js'
 import { effectiveModel, effectiveOpenRouterKey } from './settings'
+import { log } from './log'
 
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 
@@ -28,15 +31,41 @@ export interface ORLecture {
   isPdf: boolean
 }
 
-export function fileToOpenRouterPart(filePath: string): ORLecture {
+/**
+ * The OpenRouter models Osler offers are text-only, so we extract the PDF's
+ * text layer locally and send it as text rather than uploading the whole file
+ * for OpenRouter's free file-parser plugin to convert. That plugin 400s on
+ * large or image-heavy slide decks ("Failed to parse <file>"), and a local
+ * extraction also shrinks the upload from megabytes of base64 to a few KB.
+ * Falls back to the plugin only when the PDF has no extractable text layer
+ * (e.g. scanned slides), which needs the parser's OCR.
+ */
+export async function fileToOpenRouterPart(filePath: string): Promise<ORLecture> {
   const ext = extname(filePath).toLowerCase()
   if (ext === '.pdf') {
+    const buffer = fs.readFileSync(filePath)
+    try {
+      const { text } = await pdfParse(buffer)
+      if (text.trim().length >= 200) {
+        log.info('generate', `Extracted ${text.length.toLocaleString()} characters of text from the PDF`)
+        return { part: { type: 'text', text }, isPdf: false }
+      }
+      log.info(
+        'generate',
+        'PDF has little or no text layer (likely scanned slides) — falling back to OpenRouter PDF parsing'
+      )
+    } catch (err) {
+      log.info(
+        'generate',
+        `Local PDF text extraction failed (${err instanceof Error ? err.message : String(err)}) — falling back to OpenRouter PDF parsing`
+      )
+    }
     return {
       part: {
         type: 'file',
         file: {
           filename: basename(filePath),
-          file_data: `data:application/pdf;base64,${fs.readFileSync(filePath).toString('base64')}`
+          file_data: `data:application/pdf;base64,${buffer.toString('base64')}`
         }
       },
       isPdf: true

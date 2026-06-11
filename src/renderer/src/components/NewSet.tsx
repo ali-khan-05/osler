@@ -10,6 +10,75 @@ interface Props {
 
 const COUNTS = [5, 10, 15, 20]
 
+function ShimmerLine({ className }: { className?: string }): React.JSX.Element {
+  return (
+    <div
+      className={`h-1.5 animate-[shimmer_1.8s_linear_infinite] rounded ${className ?? ''}`}
+      style={{
+        background:
+          'linear-gradient(90deg, var(--color-cream-200) 25%, var(--color-cream-300) 50%, var(--color-cream-200) 75%)',
+        backgroundSize: '200% 100%'
+      }}
+    />
+  )
+}
+
+/** Shown while the first batch of questions is being written. */
+function GenerationLoader({ status }: { status: string | null }): React.JSX.Element {
+  return (
+    <div className="mt-12 flex animate-[rise-in_300ms_ease-out] flex-col items-center">
+      <div className="relative">
+        {/* the rest of the batch, waiting behind */}
+        <div className="absolute inset-0 -rotate-6 animate-[float_3.4s_ease-in-out_infinite] rounded-2xl border border-cream-300 bg-cream-50 shadow-sm" />
+        <div className="absolute inset-0 rotate-3 animate-[float_2.8s_ease-in-out_0.5s_infinite] rounded-2xl border border-cream-300 bg-cream-50 shadow-sm" />
+        {/* the question being written */}
+        <div className="relative w-72 rounded-2xl border border-cream-300 bg-white p-5 shadow-md">
+          <p className="text-left font-display text-sm text-accent-600">Q1</p>
+          <ShimmerLine className="mt-3 w-full" />
+          <ShimmerLine className="mt-2 w-5/6" />
+          <div className="mt-2 flex items-center gap-1.5">
+            <ShimmerLine className="w-1/2" />
+            <span className="h-3 w-1 animate-pulse rounded-sm bg-accent-600" />
+          </div>
+          <div className="mt-4 space-y-2">
+            {[
+              { letter: 'A', w: 'w-3/5' },
+              { letter: 'B', w: 'w-4/5' },
+              { letter: 'C', w: 'w-1/2' }
+            ].map((o) => (
+              <div key={o.letter} className="flex items-center gap-2">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cream-200 text-[10px] font-semibold text-ink-700">
+                  {o.letter}
+                </span>
+                <ShimmerLine className={o.w} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <span className="absolute -top-3 -right-5 h-2.5 w-2.5 animate-[float_3s_ease-in-out_infinite] rounded-full bg-accent-600/60" />
+        <span className="absolute -bottom-2 -left-6 h-2 w-2 animate-[float_2.4s_ease-in-out_0.6s_infinite] rounded-full bg-sage-600/60" />
+      </div>
+
+      <div className="mt-9 flex items-center gap-2.5">
+        <span className="flex items-center gap-1">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              style={{ animationDelay: `${i * 160}ms` }}
+              className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent-600"
+            />
+          ))}
+        </span>
+        <p className="text-sm text-ink-700">{status ?? 'Reading your lecture…'}</p>
+      </div>
+      <p className="mt-2 max-w-sm text-center text-xs text-ink-500">
+        The quiz starts as soon as the first questions are ready — the rest keep generating while
+        you answer. Open the log at the bottom (⌘`) for detail.
+      </p>
+    </div>
+  )
+}
+
 export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null)
   const [title, setTitle] = useState('')
@@ -70,6 +139,9 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
       <h1 className="font-display text-3xl text-ink-900">New question set</h1>
       <p className="mt-1 text-ink-500">Upload lecture slides as a PDF (export from PowerPoint if needed).</p>
 
+      {loading ? (
+        <GenerationLoader status={status} />
+      ) : (
       <div className="mt-8 space-y-6">
         <div>
           <label className="mb-2 block text-sm font-medium text-ink-700">Lecture file</label>
@@ -144,22 +216,10 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
           disabled={!filePath || loading}
           className="w-full rounded-full bg-accent-600 py-3.5 font-medium text-cream-50 shadow-sm transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:bg-accent-700 enabled:hover:shadow-md enabled:hover:shadow-accent-600/25 enabled:active:translate-y-0 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {loading ? 'Generating…' : 'Generate questions'}
+          Generate questions
         </button>
-
-        {loading && (
-          <div className="flex items-center gap-3 rounded-2xl border border-cream-300 bg-cream-50 px-5 py-4">
-            <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-accent-600" />
-            <p className="text-sm text-ink-700">
-              {status ?? 'Starting…'}
-              <span className="mt-0.5 block text-xs text-ink-500">
-                The quiz starts as soon as the first questions are ready — the rest keep
-                generating while you answer. Open the log at the bottom (⌘`) for detail.
-              </span>
-            </p>
-          </div>
-        )}
       </div>
+      )}
     </div>
   )
 }
