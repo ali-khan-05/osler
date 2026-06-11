@@ -14,6 +14,7 @@ export default function App(): React.JSX.Element {
   const [view, setView] = useState<View>('home')
   const [sets, setSets] = useState<QuestionSet[]>([])
   const [activeSet, setActiveSet] = useState<QuestionSet | null>(null)
+  const [generating, setGenerating] = useState(false)
 
   const refreshSets = async (): Promise<void> => {
     setSets(await window.api.listSets())
@@ -25,13 +26,15 @@ export default function App(): React.JSX.Element {
 
   const openSet = (set: QuestionSet): void => {
     setActiveSet(set)
+    setGenerating(false)
     const finished = set.answers.every((a) => a !== null)
     setView(finished ? 'results' : 'quiz')
   }
 
-  const handleCreated = (set: QuestionSet): void => {
+  const handleCreated = (set: QuestionSet, stillGenerating: boolean): void => {
     refreshSets()
     setActiveSet(set)
+    setGenerating(stillGenerating)
     setView('quiz')
   }
 
@@ -73,7 +76,13 @@ export default function App(): React.JSX.Element {
         {view === 'settings' && <Settings onBack={goHome} />}
         {view === 'new' && <NewSet onCreated={handleCreated} onCancel={goHome} />}
         {view === 'quiz' && activeSet && (
-          <Quiz key={activeSet.id} set={activeSet} onFinished={handleFinished} onExit={goHome} />
+          <Quiz
+            key={activeSet.id}
+            set={activeSet}
+            generating={generating}
+            onFinished={handleFinished}
+            onExit={goHome}
+          />
         )}
         {view === 'results' && activeSet && (
           <Results set={activeSet} onRetake={handleRetake} onHome={goHome} />

@@ -28,6 +28,18 @@ export interface GenerateSetArgs {
   count: number
 }
 
+export interface GenerateSetResult {
+  set: QuestionSet
+  /** true if more batches are still generating; they arrive via onSetUpdated */
+  generating: boolean
+}
+
+export interface SetUpdate {
+  set: QuestionSet
+  /** true once the final batch has arrived (even if some batches failed) */
+  done: boolean
+}
+
 export interface HintArgs {
   question: Question
   history: ChatMessage[]
@@ -40,11 +52,15 @@ export interface AppSettings {
   /** e.g. "sk-ant-api…h2Qa" — the full key never reaches the renderer */
   maskedApiKey: string | null
   keySource: 'settings' | 'env' | 'none'
+  maskedOpenRouterKey: string | null
+  openRouterKeySource: 'settings' | 'env' | 'none'
 }
 
 export interface SaveSettingsArgs {
   /** Omit to leave unchanged */
   apiKey?: string
+  /** Omit to leave unchanged */
+  openrouterApiKey?: string
   /** Omit to leave unchanged */
   model?: string
 }

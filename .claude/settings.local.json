@@ -26,7 +26,17 @@
       "Bash(gh auth *)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(gh repo *)",
+      "WebFetch(domain:openrouter.ai)",
+      "WebSearch",
+      "Bash(pkill -f \"node_modules/electron\")",
+      "Bash(node *)",
+      "Bash(curl -s -m 20 https://openrouter.ai/api/v1/key -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
+      "Bash(time curl -s -m 90 https://openrouter.ai/api/v1/chat/completions -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"model\":\"nvidia/nemotron-3-ultra-550b-a55b:free\",\"max_tokens\":2000,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in exactly three words.\"}]}')",
+      "Bash(curl -s -N -m 60 https://openrouter.ai/api/v1/chat/completions -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"model\":\"nvidia/nemotron-3-ultra-550b-a55b:free\",\"max_tokens\":2000,\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in exactly three words.\"}]}')",
+      "Bash(curl -s -m 20 \"https://openrouter.ai/api/v1/models\")",
+      "Bash(git push *)"
     ]
   }
 }

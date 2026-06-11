@@ -1,25 +1,46 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { QuestionSet } from '../../../shared/types'
 import ChatPanel from './ChatPanel'
 
 interface Props {
   set: QuestionSet
+  /** true while later batches of this set are still being generated */
+  generating: boolean
   onFinished: (set: QuestionSet) => void
   onExit: () => void
 }
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E']
 
-export default function Quiz({ set, onFinished, onExit }: Props): React.JSX.Element {
+export default function Quiz({
+  set,
+  generating: initialGenerating,
+  onFinished,
+  onExit
+}: Props): React.JSX.Element {
   const firstUnanswered = set.answers.findIndex((a) => a === null)
   const [index, setIndex] = useState(firstUnanswered === -1 ? 0 : firstUnanswered)
+  const [questions, setQuestions] = useState(set.questions)
   const [answers, setAnswers] = useState<(number | null)[]>(set.answers)
+  const [generating, setGenerating] = useState(initialGenerating)
 
-  const question = set.questions[index]
+  // New question batches arrive while the user is already answering
+  useEffect(() => {
+    return window.api.onSetUpdated((update) => {
+      if (update.set.id !== set.id) return
+      setQuestions(update.set.questions)
+      // local answers stay authoritative — the user may have just clicked one
+      setAnswers((prev) => update.set.questions.map((_, i) => prev[i] ?? null))
+      setGenerating(!update.done)
+    })
+  }, [set.id])
+
+  const question = questions[index]
   const chosen = answers[index]
   const answered = chosen !== null
-  const total = set.questions.length
+  const total = questions.length
   const answeredCount = answers.filter((a) => a !== null).length
+  const waitingForMore = index === total - 1 && generating
 
   const choose = (optionIndex: number): void => {
     if (answered) return
@@ -33,7 +54,7 @@ export default function Quiz({ set, onFinished, onExit }: Props): React.JSX.Elem
     if (index < total - 1) {
       setIndex(index + 1)
     } else {
-      onFinished({ ...set, answers })
+      onFinished({ ...set, questions, answers })
     }
   }
 
@@ -62,8 +83,16 @@ export default function Quiz({ set, onFinished, onExit }: Props): React.JSX.Elem
             ← Save & exit
           </button>
           <p className="font-display text-ink-700">{set.title}</p>
-          <p className="text-sm text-ink-500">
-            {answeredCount}/{total} answered
+          <p className="flex items-center gap-2 text-sm text-ink-500">
+            {generating && (
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-600" />
+                generating more
+              </span>
+            )}
+            <span>
+              {answeredCount}/{total} answered
+            </span>
           </p>
         </header>
 
@@ -133,10 +162,14 @@ export default function Quiz({ set, onFinished, onExit }: Props): React.JSX.Elem
           </button>
           <button
             onClick={goNext}
-            disabled={!answered}
+            disabled={!answered || waitingForMore}
             className="rounded-full bg-accent-600 px-6 py-2 text-sm font-medium text-cream-50 transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {index === total - 1 ? 'Finish & get coaching' : 'Next →'}
+            {waitingForMore && answered
+              ? 'More questions coming…'
+              : index === total - 1
+                ? 'Finish & get coaching'
+                : 'Next →'}
           </button>
         </footer>
       </div>

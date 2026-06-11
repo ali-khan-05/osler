@@ -2,15 +2,17 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AppSettings,
   GenerateSetArgs,
+  GenerateSetResult,
   HintArgs,
   QuestionSet,
   LogEvent,
-  SaveSettingsArgs
+  SaveSettingsArgs,
+  SetUpdate
 } from '../shared/types'
 
 const api = {
   pickFile: (): Promise<string | null> => ipcRenderer.invoke('pick-file'),
-  generateSet: (args: GenerateSetArgs): Promise<QuestionSet> =>
+  generateSet: (args: GenerateSetArgs): Promise<GenerateSetResult> =>
     ipcRenderer.invoke('generate-set', args),
   listSets: (): Promise<QuestionSet[]> => ipcRenderer.invoke('list-sets'),
   deleteSet: (id: string): Promise<void> => ipcRenderer.invoke('delete-set', id),
@@ -28,6 +30,12 @@ const api = {
     const listener = (_e: unknown, event: LogEvent): void => callback(event)
     ipcRenderer.on('app-log', listener)
     return () => ipcRenderer.removeListener('app-log', listener)
+  },
+  /** Subscribe to question batches arriving for a still-generating set. Returns an unsubscribe function. */
+  onSetUpdated: (callback: (update: SetUpdate) => void): (() => void) => {
+    const listener = (_e: unknown, update: SetUpdate): void => callback(update)
+    ipcRenderer.on('set-updated', listener)
+    return () => ipcRenderer.removeListener('set-updated', listener)
   }
 }
 

@@ -3,7 +3,7 @@ import type { QuestionSet } from '../../../shared/types'
 import { useLatestStatus } from '../logs'
 
 interface Props {
-  onCreated: (set: QuestionSet) => void
+  onCreated: (set: QuestionSet, generating: boolean) => void
   onCancel: () => void
 }
 
@@ -35,12 +35,12 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
     setLoading(true)
     setError(null)
     try {
-      const set = await window.api.generateSet({
+      const { set, generating } = await window.api.generateSet({
         filePath,
         title: title.trim() || fileName || 'Untitled set',
         count
       })
-      onCreated(set)
+      onCreated(set, generating)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setError(msg.replace(/^Error invoking remote method '[^']+': (Error: )?/, ''))
@@ -122,7 +122,8 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
             <p className="text-sm text-ink-700">
               {status ?? 'Starting…'}
               <span className="mt-0.5 block text-xs text-ink-500">
-                A full set takes a minute or two. Open the log at the bottom (⌘`) for detail.
+                The quiz starts as soon as the first questions are ready — the rest keep
+                generating while you answer. Open the log at the bottom (⌘`) for detail.
               </span>
             </p>
           </div>

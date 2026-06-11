@@ -19,7 +19,17 @@ const MODELS = [
   {
     id: 'claude-haiku-4-5',
     name: 'Haiku 4.5',
-    blurb: 'Fastest and cheapest — quality holds up well for slide-based questions'
+    blurb: 'Fastest and cheapest Claude — quality holds up well for slide-based questions'
+  },
+  {
+    id: 'nvidia/nemotron-3-super-120b-a12b:free',
+    name: 'Nemotron 3 Super — free',
+    blurb: 'Free via OpenRouter and usually fast — the best free choice. Needs an OpenRouter key below'
+  },
+  {
+    id: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    name: 'Nemotron 3 Ultra — free',
+    blurb: 'Bigger free model, but often stuck in a long queue — if generation stalls, switch to Super'
   }
 ]
 
@@ -27,7 +37,9 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [model, setModel] = useState('')
   const [keyInput, setKeyInput] = useState('')
+  const [orKeyInput, setOrKeyInput] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [showOrKey, setShowOrKey] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +51,10 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
     })
   }, [])
 
-  const dirty = keyInput.trim() !== '' || (settings !== null && model !== settings.model)
+  const dirty =
+    keyInput.trim() !== '' ||
+    orKeyInput.trim() !== '' ||
+    (settings !== null && model !== settings.model)
 
   const save = async (): Promise<void> => {
     setSaving(true)
@@ -48,11 +63,13 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
     try {
       const next = await window.api.saveSettings({
         model: settings && model !== settings.model ? model : undefined,
-        apiKey: keyInput.trim() || undefined
+        apiKey: keyInput.trim() || undefined,
+        openrouterApiKey: orKeyInput.trim() || undefined
       })
       setSettings(next)
       setModel(next.model)
       setKeyInput('')
+      setOrKeyInput('')
       setSaved(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -70,13 +87,21 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
         ? `Currently using the key from the .env file (${settings.maskedApiKey}). Pasting a key here will replace it.`
         : `Key saved in the app (${settings.maskedApiKey}).`
 
+  const orKeyStatus = !settings
+    ? ''
+    : settings.openRouterKeySource === 'none'
+      ? 'No OpenRouter key set — needed only for the free Nemotron model.'
+      : settings.openRouterKeySource === 'env'
+        ? `Currently using the key from the .env file (${settings.maskedOpenRouterKey}). Pasting a key here will replace it.`
+        : `Key saved in the app (${settings.maskedOpenRouterKey}).`
+
   return (
     <div className="mx-auto max-w-2xl px-8 py-12">
       <button onClick={onBack} className="mb-8 text-sm text-ink-500 hover:text-ink-900">
         ← Back
       </button>
       <h1 className="font-display text-3xl text-ink-900">Settings</h1>
-      <p className="mt-1 text-ink-500">Choose which Claude model Osler uses and manage your API key.</p>
+      <p className="mt-1 text-ink-500">Choose which AI model Osler uses and manage your API keys.</p>
 
       <div className="mt-8 space-y-8">
         <div>
@@ -136,6 +161,42 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
             </button>
           </div>
           {keyStatus && <p className="mt-2 text-sm text-ink-500">{keyStatus}</p>}
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-ink-700">OpenRouter API key</label>
+          <div className="flex gap-2">
+            <input
+              type={showOrKey ? 'text' : 'password'}
+              value={orKeyInput}
+              onChange={(e) => setOrKeyInput(e.target.value)}
+              disabled={saving}
+              placeholder="sk-or-…"
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full rounded-2xl border border-cream-300 bg-white px-5 py-3 font-mono text-sm text-ink-900 placeholder:text-ink-500/60 focus:border-accent-600/60 focus:outline-none disabled:opacity-50"
+            />
+            <button
+              onClick={() => setShowOrKey((v) => !v)}
+              className="shrink-0 rounded-2xl border border-cream-300 bg-cream-50 px-4 text-sm text-ink-700 transition hover:border-accent-600/40"
+              title={showOrKey ? 'Hide key' : 'Show key'}
+            >
+              {showOrKey ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {orKeyStatus && <p className="mt-2 text-sm text-ink-500">{orKeyStatus}</p>}
+          <p className="mt-1 text-sm text-ink-500">
+            Create one free at{' '}
+            <a
+              href="https://openrouter.ai/keys"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-accent-600 hover:underline"
+            >
+              openrouter.ai/keys
+            </a>
+            .
+          </p>
         </div>
 
         {error && (

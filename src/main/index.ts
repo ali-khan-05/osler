@@ -6,7 +6,14 @@ import { listSets, getSet, saveSet, deleteSet } from './store'
 import { generateQuestions, getHint, getCoachReport } from './anthropic'
 import { getAppSettings, saveSettings } from './settings'
 import { log, history } from './log'
-import type { GenerateSetArgs, HintArgs, QuestionSet, SaveSettingsArgs } from '../shared/types'
+import type {
+  GenerateSetArgs,
+  GenerateSetResult,
+  HintArgs,
+  QuestionSet,
+  SaveSettingsArgs,
+  SetUpdate
+} from '../shared/types'
 
 config({ path: join(app.getAppPath(), '.env') })
 
@@ -67,9 +74,11 @@ app.whenReady().then(() => {
     return result.canceled ? null : result.filePaths[0]
   })
 
-  handle('generate-set', async (...args) => {
+  // Resolves as soon as the first batch is ready so the quiz can start;
+  // later batches are appended to the stored set and pushed via 'set-updated'.
+  handle('generate-set', async (...args): Promise<GenerateSetResult> => {
     const a = args[0] as GenerateSetArgs
-    const questions = await generateQuestions(a.filePath, a.count)
+    const { questions, generateRest } = await generateQuestions(a.filePath, a.count)
     const set: QuestionSet = {
       id: randomUUID(),
       title: a.title,
@@ -80,7 +89,19 @@ app.whenReady().then(() => {
       coachReport: null
     }
     saveSet(set)
-    return set
+    generateRest?.((batch, done) => {
+      // Disk is the source of truth — the user is already answering this set
+      const current = getSet(set.id)
+      if (!current) return // set was deleted mid-generation
+      current.questions.push(...batch)
+      current.answers.push(...batch.map(() => null))
+      saveSet(current)
+      const update: SetUpdate = { set: current, done }
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send('set-updated', update)
+      }
+    })
+    return { set, generating: generateRest !== null }
   })
 
   handle('list-sets', () => listSets())
@@ -93,7 +114,8 @@ app.whenReady().then(() => {
     const a = args[0] as { id: string; answers: (number | null)[] }
     const set = getSet(a.id)
     if (!set) return
-    set.answers = a.answers
+    // questions may have grown since the renderer sent these answers — pad with nulls
+    set.answers = set.questions.map((_, i) => a.answers[i] ?? null)
     saveSet(set)
   })
 
@@ -114,7 +136,7 @@ app.whenReady().then(() => {
     const next = getAppSettings()
     log.success(
       'settings',
-      `Settings saved — model: ${next.model}${a.apiKey ? ', API key updated' : ''}`
+      `Settings saved — model: ${next.model}${a.apiKey ? ', Anthropic key updated' : ''}${a.openrouterApiKey ? ', OpenRouter key updated' : ''}`
     )
     return next
   })
