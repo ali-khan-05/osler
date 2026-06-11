@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { QuestionSet } from '../../../shared/types'
 import { useLatestStatus } from '../logs'
+import { ArrowLeftIcon } from './icons'
 
 interface Props {
   onCreated: (set: QuestionSet, generating: boolean) => void
@@ -59,8 +60,12 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
 
   return (
     <div className="mx-auto max-w-2xl px-8 py-12">
-      <button onClick={onCancel} className="mb-8 text-sm text-ink-500 hover:text-ink-900">
-        ← Back
+      <button
+        onClick={onCancel}
+        className="group mb-8 flex items-center gap-1.5 text-sm text-ink-500 transition-colors duration-200 hover:text-ink-900"
+      >
+        <ArrowLeftIcon className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+        Back
       </button>
       <h1 className="font-display text-3xl text-ink-900">New question set</h1>
       <p className="mt-1 text-ink-500">Upload lecture slides as a PDF (export from PowerPoint if needed).</p>
@@ -71,7 +76,7 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
           <button
             onClick={pickFile}
             disabled={loading}
-            className="flex w-full items-center justify-between rounded-2xl border border-dashed border-cream-400 bg-cream-50 px-6 py-5 text-left transition hover:border-accent-600/50 hover:bg-white disabled:opacity-50"
+            className="flex w-full items-center justify-between rounded-2xl border border-dashed border-cream-400 bg-cream-50 px-6 py-5 text-left transition-all duration-200 enabled:hover:border-accent-600/50 enabled:hover:bg-white enabled:hover:shadow-sm enabled:active:scale-[0.99] disabled:opacity-50"
           >
             <span className={fileName ? 'text-ink-900' : 'text-ink-500'}>
               {fileName ?? 'Choose a PDF, image, or text file…'}
@@ -116,10 +121,10 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
                 key={c}
                 onClick={() => setCount(c)}
                 disabled={loading}
-                className={`rounded-full px-5 py-2 text-sm font-medium transition disabled:opacity-50 ${
+                className={`rounded-full px-5 py-2 text-sm font-medium transition-all duration-200 enabled:active:scale-95 disabled:opacity-50 ${
                   count === c
-                    ? 'bg-accent-600 text-cream-50'
-                    : 'border border-cream-300 bg-cream-50 text-ink-700 hover:border-accent-600/40'
+                    ? 'bg-accent-600 text-cream-50 shadow-sm'
+                    : 'border border-cream-300 bg-cream-50 text-ink-700 enabled:hover:border-accent-600/40 enabled:hover:shadow-sm'
                 }`}
               >
                 {c}
@@ -137,7 +142,7 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
         <button
           onClick={generate}
           disabled={!filePath || loading}
-          className="w-full rounded-full bg-accent-600 py-3.5 font-medium text-cream-50 transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-full bg-accent-600 py-3.5 font-medium text-cream-50 shadow-sm transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:bg-accent-700 enabled:hover:shadow-md enabled:hover:shadow-accent-600/25 enabled:active:translate-y-0 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? 'Generating…' : 'Generate questions'}
         </button>

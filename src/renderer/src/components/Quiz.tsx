@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { QuestionSet } from '../../../shared/types'
 import ChatPanel from './ChatPanel'
+import { ArrowLeftIcon, ArrowRightIcon } from './icons'
 
 interface Props {
   set: QuestionSet
@@ -67,11 +68,40 @@ export default function Quiz({
     }
   }
 
+  // Keyboard shortcuts: 1–5 answer, Enter/→ next, ← previous. The handler
+  // lives in a ref so the single listener always sees the latest state.
+  const keyRef = useRef<(e: KeyboardEvent) => void>(() => {})
+  keyRef.current = (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement
+    // never steal keys from the hint chat (or any other text field)
+    if (target.closest('input, textarea, [contenteditable="true"]')) return
+    if (/^[1-9]$/.test(e.key)) {
+      const i = Number(e.key) - 1
+      if (i < question.options.length) choose(i)
+      return
+    }
+    // leave Enter/Space on focused buttons to their native click behavior
+    if (target.closest('button')) return
+    if (e.key === 'Enter' || e.key === 'ArrowRight') {
+      if (answered && !waitingForMore) goNext()
+    } else if (e.key === 'ArrowLeft') {
+      setPos((p) => Math.max(0, p - 1))
+    }
+  }
+  useEffect(() => {
+    const listener = (e: KeyboardEvent): void => keyRef.current(e)
+    window.addEventListener('keydown', listener)
+    return () => window.removeEventListener('keydown', listener)
+  }, [])
+
   const optionStyle = (i: number): string => {
     const base =
-      'flex w-full items-start gap-4 rounded-2xl border px-5 py-4 text-left transition '
+      'flex w-full items-start gap-4 rounded-2xl border px-5 py-4 text-left transition-all duration-200 '
     if (!answered) {
-      return base + 'border-cream-300 bg-cream-50 hover:border-accent-600/50 hover:bg-white cursor-pointer'
+      return (
+        base +
+        'border-cream-300 bg-cream-50 hover:border-accent-600/50 hover:bg-white hover:shadow-sm active:scale-[0.99] cursor-pointer'
+      )
     }
     if (i === question.correctIndex) {
       return base + 'border-sage-600/50 bg-sage-100'
@@ -88,8 +118,12 @@ export default function Quiz({
       {/* Main question area */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-cream-300 px-8 py-4">
-          <button onClick={onExit} className="text-sm text-ink-500 hover:text-ink-900">
-            ← Save & exit
+          <button
+            onClick={onExit}
+            className="group flex items-center gap-1.5 text-sm text-ink-500 transition-colors duration-200 hover:text-ink-900"
+          >
+            <ArrowLeftIcon className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            Save & exit
           </button>
           <p className="font-display text-ink-700">{set.title}</p>
           <p className="flex items-center gap-2 text-sm text-ink-500">
@@ -142,7 +176,7 @@ export default function Quiz({
             </div>
 
             {answered && (
-              <div className="mt-8 rounded-2xl border border-cream-300 bg-cream-50 px-6 py-5">
+              <div className="mt-8 animate-[rise-in_250ms_ease-out] rounded-2xl border border-cream-300 bg-cream-50 px-6 py-5">
                 <p className="mb-2 font-medium">
                   {chosen === question.correctIndex ? (
                     <span className="text-sage-600">Correct</span>
@@ -165,20 +199,34 @@ export default function Quiz({
           <button
             onClick={() => setPos(Math.max(0, pos - 1))}
             disabled={pos === 0}
-            className="rounded-full border border-cream-300 px-5 py-2 text-sm font-medium text-ink-700 transition hover:border-accent-600/40 disabled:opacity-30"
+            className="group flex items-center gap-1.5 rounded-full border border-cream-300 px-5 py-2 text-sm font-medium text-ink-700 transition-all duration-200 enabled:hover:border-accent-600/40 enabled:hover:shadow-sm enabled:active:scale-95 disabled:opacity-30"
           >
-            ← Previous
+            <ArrowLeftIcon className="h-3.5 w-3.5 transition-transform duration-200 group-enabled:group-hover:-translate-x-0.5" />
+            Previous
           </button>
+          <p className="hidden text-xs text-ink-500 sm:block">
+            <kbd className="rounded border border-cream-300 bg-cream-50 px-1.5 py-0.5 font-sans">1</kbd>
+            –
+            <kbd className="rounded border border-cream-300 bg-cream-50 px-1.5 py-0.5 font-sans">5</kbd>{' '}
+            to answer ·{' '}
+            <kbd className="rounded border border-cream-300 bg-cream-50 px-1.5 py-0.5 font-sans">
+              Enter
+            </kbd>{' '}
+            for next
+          </p>
           <button
             onClick={goNext}
             disabled={!answered || waitingForMore}
-            className="rounded-full bg-accent-600 px-6 py-2 text-sm font-medium text-cream-50 transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="group flex items-center gap-1.5 rounded-full bg-accent-600 px-6 py-2 text-sm font-medium text-cream-50 shadow-sm transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:bg-accent-700 enabled:hover:shadow-md enabled:hover:shadow-accent-600/25 enabled:active:translate-y-0 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {waitingForMore && answered
               ? 'More questions coming…'
               : pos === total - 1
                 ? 'Finish & get coaching'
-                : 'Next →'}
+                : 'Next'}
+            {!(waitingForMore && answered) && (
+              <ArrowRightIcon className="h-3.5 w-3.5 transition-transform duration-200 group-enabled:group-hover:translate-x-0.5" />
+            )}
           </button>
         </footer>
       </div>

@@ -46,10 +46,13 @@ export default function App(): React.JSX.Element {
     setView('quiz')
   }
 
-  const handleFinished = (set: QuestionSet): void => {
+  const handleFinished = async (set: QuestionSet): Promise<void> => {
     setActiveSet(set)
-    refreshSets()
     setView('results')
+    // snapshot this run into the attempt history, then pick up the stored set
+    const updated = await window.api.recordAttempt(set.id)
+    if (updated) setActiveSet(updated)
+    refreshSets()
   }
 
   const handleRetake = async (): Promise<void> => {

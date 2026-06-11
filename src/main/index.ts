@@ -153,6 +153,22 @@ app.whenReady().then(() => {
     return listTopics()
   })
 
+  // Snapshot the score of a completed run into the set's attempt history.
+  // No-op (returns the set unchanged) if any question is still unanswered,
+  // e.g. a new batch arrived between the last answer and the finish click.
+  handle('record-attempt', (...args) => {
+    const set = getSet(args[0] as string)
+    if (!set) return null
+    if (set.questions.length === 0 || set.answers.some((a) => a === null)) return set
+    const correct = set.questions.filter((q, i) => set.answers[i] === q.correctIndex).length
+    set.attempts = [
+      ...(set.attempts ?? []),
+      { date: new Date().toISOString(), correct, total: set.questions.length }
+    ]
+    saveSet(set)
+    return set
+  })
+
   handle('reset-set', (...args) => {
     const set = getSet(args[0] as string)
     if (!set) return null
@@ -181,8 +197,10 @@ app.whenReady().then(() => {
     const set = getSet(args[0] as string)
     if (!set) throw new Error('Question set not found.')
     const report = await getCoachReport(set)
-    set.coachReport = report
-    saveSet(set)
+    // re-read before saving — an attempt may have been recorded while the model ran
+    const fresh = getSet(set.id) ?? set
+    fresh.coachReport = report
+    saveSet(fresh)
     return report
   })
 

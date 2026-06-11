@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { AppSettings } from '../../../shared/types'
+import { ArrowLeftIcon, CheckIcon } from './icons'
 
 interface Props {
   onBack: () => void
@@ -72,8 +73,12 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl px-8 py-12">
-      <button onClick={onBack} className="mb-8 text-sm text-ink-500 hover:text-ink-900">
-        ← Back
+      <button
+        onClick={onBack}
+        className="group mb-8 flex items-center gap-1.5 text-sm text-ink-500 transition-colors duration-200 hover:text-ink-900"
+      >
+        <ArrowLeftIcon className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+        Back
       </button>
       <h1 className="font-display text-3xl text-ink-900">Settings</h1>
       <p className="mt-1 text-ink-500">Choose which AI model Osler uses and manage your API keys.</p>
@@ -88,10 +93,10 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
                 <button
                   key={m.id}
                   onClick={() => setModel(m.id)}
-                  className={`flex w-full items-center justify-between rounded-2xl border px-6 py-4 text-left transition ${
+                  className={`flex w-full items-center justify-between rounded-2xl border px-6 py-4 text-left transition-all duration-200 active:scale-[0.99] ${
                     selected
-                      ? 'border-accent-600 bg-white'
-                      : 'border-cream-300 bg-cream-50 hover:border-accent-600/40'
+                      ? 'border-accent-600 bg-white shadow-sm'
+                      : 'border-cream-300 bg-cream-50 hover:border-accent-600/40 hover:shadow-sm'
                   }`}
                 >
                   <div>
@@ -99,7 +104,7 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
                     <p className="mt-0.5 text-sm text-ink-500">{m.blurb}</p>
                   </div>
                   <span
-                    className={`ml-4 h-4 w-4 shrink-0 rounded-full border-2 ${
+                    className={`ml-4 h-4 w-4 shrink-0 rounded-full border-2 transition-all duration-200 ${
                       selected ? 'border-accent-600 bg-accent-600' : 'border-cream-400'
                     }`}
                   />
@@ -129,7 +134,7 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
             />
             <button
               onClick={() => setShowOrKey((v) => !v)}
-              className="shrink-0 rounded-2xl border border-cream-300 bg-cream-50 px-4 text-sm text-ink-700 transition hover:border-accent-600/40"
+              className="shrink-0 rounded-2xl border border-cream-300 bg-cream-50 px-4 text-sm text-ink-700 transition-all duration-200 hover:border-accent-600/40 hover:shadow-sm active:scale-95"
               title={showOrKey ? 'Hide key' : 'Show key'}
             >
               {showOrKey ? 'Hide' : 'Show'}
@@ -160,11 +165,15 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
           <button
             onClick={save}
             disabled={!dirty || saving}
-            className="rounded-full bg-accent-600 px-8 py-3 font-medium text-cream-50 transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-accent-600 px-8 py-3 font-medium text-cream-50 shadow-sm transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:bg-accent-700 enabled:hover:shadow-md enabled:hover:shadow-accent-600/25 enabled:active:translate-y-0 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
-          {saved && !dirty && <span className="text-sm font-medium text-sage-600">Saved ✓</span>}
+          {saved && !dirty && (
+            <span className="flex animate-[pop-in_200ms_ease-out] items-center gap-1 text-sm font-medium text-sage-600">
+              Saved <CheckIcon className="h-4 w-4" />
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -19,6 +19,9 @@ const api = {
   saveAnswers: (id: string, answers: (number | null)[]): Promise<void> =>
     ipcRenderer.invoke('save-answers', { id, answers }),
   resetSet: (id: string): Promise<QuestionSet | null> => ipcRenderer.invoke('reset-set', id),
+  /** Record a completed run into the set's attempt history; returns the updated set */
+  recordAttempt: (id: string): Promise<QuestionSet | null> =>
+    ipcRenderer.invoke('record-attempt', id),
   /** Move a set to a topic folder; null removes it from any topic */
   setTopic: (id: string, topic: string | null): Promise<void> =>
     ipcRenderer.invoke('set-topic', { id, topic }),

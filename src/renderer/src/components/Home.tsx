@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { QuestionSet } from '../../../shared/types'
+import {
+  ArrowUpIcon,
+  ChevronIcon,
+  DotsIcon,
+  GearIcon,
+  MiniRing,
+  PlusIcon,
+  XIcon
+} from './icons'
 
 interface Props {
   sets: QuestionSet[]
@@ -18,6 +27,12 @@ function loadCollapsed(): string[] {
   } catch {
     return []
   }
+}
+
+/** Current score of a set as a 0–100 percentage, from its saved answers. */
+function scorePct(set: QuestionSet): number {
+  const correct = set.questions.filter((q, i) => set.answers[i] === q.correctIndex).length
+  return Math.round((correct / set.questions.length) * 100)
 }
 
 /** Hover "⋯" menu on each lecture card: move to another topic, or delete. */
@@ -57,27 +72,29 @@ function CardMenu({
       <button
         onClick={() => (open ? close() : setOpen(true))}
         title="Options"
-        className={`rounded-full px-2.5 py-1 text-sm font-semibold tracking-wider text-ink-500 transition hover:bg-cream-200 hover:text-ink-900 ${
-          open ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        aria-label="Lecture options"
+        className={`rounded-full p-1.5 text-ink-500 transition-all duration-200 hover:bg-cream-200 hover:text-ink-900 active:scale-90 ${
+          open ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
         }`}
       >
-        ⋯
+        <DotsIcon className="h-5 w-5" />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={close} />
-          <div className="absolute top-9 right-0 z-20 w-52 overflow-hidden rounded-xl border border-cream-300 bg-white py-1 shadow-lg">
+          <div className="absolute top-9 right-0 z-20 w-52 origin-top-right animate-[pop-in_150ms_ease-out] overflow-hidden rounded-xl border border-cream-300 bg-white py-1 shadow-lg">
             {!showMove ? (
               <>
                 <button
                   onClick={() => setShowMove(true)}
-                  className="block w-full px-4 py-2.5 text-left text-sm text-ink-700 transition hover:bg-cream-100"
+                  className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-ink-700 transition-colors duration-150 hover:bg-cream-100"
                 >
-                  Move to another topic ▸
+                  Move to another topic
+                  <ChevronIcon className="h-3.5 w-3.5 -rotate-90 text-ink-500" />
                 </button>
                 <button
                   onClick={del}
-                  className="block w-full px-4 py-2.5 text-left text-sm text-rose-600 transition hover:bg-rose-100"
+                  className="block w-full px-4 py-2.5 text-left text-sm text-rose-600 transition-colors duration-150 hover:bg-rose-100"
                 >
                   Delete lecture
                 </button>
@@ -91,7 +108,7 @@ function CardMenu({
                   <button
                     key={t}
                     onClick={() => move(t)}
-                    className="block w-full truncate px-4 py-2 text-left text-sm text-ink-700 transition hover:bg-cream-100"
+                    className="block w-full truncate px-4 py-2 text-left text-sm text-ink-700 transition-colors duration-150 hover:bg-cream-100"
                   >
                     {t}
                   </button>
@@ -99,7 +116,7 @@ function CardMenu({
                 {set.topic && (
                   <button
                     onClick={() => move(null)}
-                    className="block w-full px-4 py-2 text-left text-sm text-ink-500 transition hover:bg-cream-100"
+                    className="block w-full px-4 py-2 text-left text-sm text-ink-500 transition-colors duration-150 hover:bg-cream-100"
                   >
                     (no topic)
                   </button>
@@ -130,7 +147,13 @@ function SetCard({
   const answered = set.answers.filter((a) => a !== null).length
   const total = set.questions.length
   const finished = answered === total
-  const correct = set.questions.filter((q, i) => set.answers[i] === q.correctIndex).length
+  const pct = scorePct(set)
+  // compare the last two recorded attempts for the trend arrow
+  const attempts = set.attempts ?? []
+  const prev = attempts.length >= 2 ? attempts[attempts.length - 2] : null
+  const prevPct = prev ? Math.round((prev.correct / prev.total) * 100) : null
+  const trend =
+    finished && prevPct !== null && pct !== prevPct ? (pct > prevPct ? 'up' : 'down') : null
 
   return (
     <div
@@ -145,30 +168,58 @@ function SetCard({
       onKeyDown={(e) => {
         if (e.key === 'Enter') onOpenSet(set)
       }}
-      className="group flex w-full cursor-pointer items-center justify-between rounded-2xl border border-cream-300 bg-cream-50 px-6 py-5 text-left transition hover:border-accent-600/40 hover:bg-white"
+      className="group flex w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left transition-colors duration-200 first:rounded-t-[15px] last:rounded-b-[15px] hover:bg-white focus-visible:ring-2 focus-visible:ring-accent-600/40 focus-visible:outline-none focus-visible:ring-inset"
     >
       <div className="min-w-0">
-        <p className="truncate font-display text-lg text-ink-900">{set.title}</p>
+        <p className="truncate font-display text-lg text-ink-900 transition-colors duration-200 group-hover:text-accent-700">
+          {set.title}
+        </p>
         <p className="mt-0.5 text-sm text-ink-500">
           {total} questions · {new Date(set.createdAt).toLocaleDateString()}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2">
         {finished ? (
-          <span className="rounded-full bg-sage-100 px-3 py-1 text-sm font-medium text-sage-600">
-            {Math.round((correct / total) * 100)}% · review
+          <span
+            title={trend ? `${trend === 'up' ? 'Up' : 'Down'} from ${prevPct}% last attempt` : undefined}
+            className="flex items-center gap-1 rounded-full bg-sage-100 px-3 py-1 text-sm font-medium text-sage-600"
+          >
+            {pct}% · review
+            {trend === 'up' && <ArrowUpIcon className="h-3.5 w-3.5" />}
+            {trend === 'down' && <ArrowUpIcon className="h-3.5 w-3.5 rotate-180 text-rose-600" />}
           </span>
         ) : answered > 0 ? (
           <span className="rounded-full bg-cream-200 px-3 py-1 text-sm font-medium text-ink-700">
             {answered}/{total} · resume
           </span>
         ) : (
-          <span className="rounded-full bg-cream-200 px-3 py-1 text-sm font-medium text-ink-700">
+          <span className="rounded-full bg-cream-200 px-3 py-1 text-sm font-medium text-ink-700 transition-colors duration-200 group-hover:bg-accent-600 group-hover:text-cream-50">
             start
           </span>
         )}
         <CardMenu set={set} topics={topics} onChanged={onChanged} />
       </div>
+    </div>
+  )
+}
+
+/** Lectures in one topic render as a single container with row dividers, so the group reads as one unit. */
+function SetList({
+  sets,
+  topics,
+  onOpenSet,
+  onChanged
+}: {
+  sets: QuestionSet[]
+  topics: string[]
+  onOpenSet: (set: QuestionSet) => void
+  onChanged: () => void
+}): React.JSX.Element {
+  return (
+    <div className="divide-y divide-cream-200 rounded-2xl border border-cream-300 bg-cream-50 shadow-sm">
+      {sets.map((set) => (
+        <SetCard key={set.id} set={set} topics={topics} onOpenSet={onOpenSet} onChanged={onChanged} />
+      ))}
     </div>
   )
 }
@@ -242,15 +293,18 @@ export default function Home({
         <div className="flex items-center gap-3">
           <button
             onClick={onSettings}
-            className="rounded-full border border-cream-300 bg-cream-50 px-5 py-2.5 font-medium text-ink-700 transition hover:border-accent-600/40 hover:text-ink-900"
+            title="Settings"
+            aria-label="Settings"
+            className="group rounded-full border border-cream-300 bg-cream-50 p-2.5 text-ink-700 transition-all duration-200 hover:border-accent-600/40 hover:text-ink-900 hover:shadow-sm active:scale-95"
           >
-            Settings
+            <GearIcon className="h-5 w-5 transition-transform duration-300 ease-out group-hover:rotate-45" />
           </button>
           <button
             onClick={onNewSet}
-            className="rounded-full bg-accent-600 px-6 py-2.5 font-medium text-cream-50 transition hover:bg-accent-700"
+            className="group flex items-center gap-2 rounded-full bg-accent-600 px-6 py-2.5 font-medium text-cream-50 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-accent-700 hover:shadow-md hover:shadow-accent-600/25 active:translate-y-0 active:scale-[0.97]"
           >
-            + New question set
+            <PlusIcon className="h-4 w-4 transition-transform duration-300 ease-out group-hover:rotate-90" />
+            New question set
           </button>
         </div>
       </header>
@@ -271,15 +325,16 @@ export default function Home({
             }}
             onBlur={addTopic}
             placeholder="Topic name…"
-            className="w-48 rounded-full border border-accent-600/40 bg-white px-4 py-1.5 text-sm text-ink-900 focus:outline-none"
+            className="w-48 animate-[pop-in_150ms_ease-out] rounded-full border border-accent-600/40 bg-white px-4 py-1.5 text-sm text-ink-900 focus:outline-none"
           />
         ) : (
           <button
             onClick={() => setAddingTopic(true)}
             title="Add a topic"
-            className="flex items-center gap-1.5 rounded-full border border-cream-300 bg-cream-50 px-4 py-1.5 text-sm font-medium text-ink-700 transition hover:border-accent-600/40 hover:text-ink-900"
+            className="group flex items-center gap-1.5 rounded-full border border-cream-300 bg-cream-50 px-4 py-1.5 text-sm font-medium text-ink-700 transition-all duration-200 hover:border-accent-600/40 hover:text-ink-900 hover:shadow-sm active:scale-95"
           >
-            <span className="text-base leading-none">＋</span> Add topic
+            <PlusIcon className="h-3.5 w-3.5 transition-transform duration-300 ease-out group-hover:rotate-90" />
+            Add topic
           </button>
         )}
       </div>
@@ -290,27 +345,42 @@ export default function Home({
           <p className="mt-2 text-ink-500">
             Upload your lecture slides and Osler will write practice questions for you.
           </p>
+          <button
+            onClick={onNewSet}
+            className="group mx-auto mt-6 flex items-center gap-2 rounded-full bg-accent-600 px-6 py-2.5 font-medium text-cream-50 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-accent-700 hover:shadow-md hover:shadow-accent-600/25 active:translate-y-0 active:scale-[0.97]"
+          >
+            <PlusIcon className="h-4 w-4 transition-transform duration-300 ease-out group-hover:rotate-90" />
+            New question set
+          </button>
         </div>
       ) : sectionNames.length === 0 ? (
         // no topics yet — plain list
-        <div className="space-y-3">
-          {sets.map((set) => (
-            <SetCard
-              key={set.id}
-              set={set}
-              topics={allTopics}
-              onOpenSet={onOpenSet}
-              onChanged={onChanged}
-            />
-          ))}
-        </div>
+        <SetList sets={sets} topics={allTopics} onOpenSet={onOpenSet} onChanged={onChanged} />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {sectionNames.map((topic) => {
             const topicSets = groups.get(topic) ?? (topic === UNFILED ? unfiled : [])
             const isCollapsed = collapsed.includes(topic)
             const isTarget = dragOver === topic
             if (topic === UNFILED && topicSets.length === 0) return null
+            // topic mastery: average score across finished sets
+            const finishedSets = topicSets.filter(
+              (s) => s.questions.length > 0 && s.answers.every((a) => a !== null)
+            )
+            const mastery =
+              finishedSets.length > 0
+                ? Math.round(
+                    finishedSets.reduce((sum, s) => sum + scorePct(s), 0) / finishedSets.length
+                  )
+                : null
+            const masteryTone =
+              mastery === null
+                ? ''
+                : mastery >= 80
+                  ? 'text-sage-600'
+                  : mastery >= 50
+                    ? 'text-accent-600'
+                    : 'text-rose-600'
             return (
               <section
                 key={topic}
@@ -320,46 +390,68 @@ export default function Home({
                 }}
                 onDragLeave={() => setDragOver((cur) => (cur === topic ? null : cur))}
                 onDrop={(e) => dropOn(e, topic)}
-                className={`rounded-2xl transition ${
+                className={`rounded-2xl transition-all duration-200 ${
                   isTarget ? 'bg-accent-600/5 ring-2 ring-accent-600/40' : ''
                 }`}
               >
-                <div className="group/topic mb-3 flex items-center gap-2.5">
-                  <button onClick={() => toggle(topic)} className="flex items-center gap-2.5 text-left">
-                    <span className="text-sm text-ink-500">{isCollapsed ? '▸' : '▾'}</span>
+                <div className="group/topic mb-2.5 flex items-center gap-2">
+                  <button
+                    onClick={() => toggle(topic)}
+                    className="flex items-center gap-2 rounded-lg text-left"
+                    aria-expanded={!isCollapsed}
+                  >
+                    <ChevronIcon
+                      className={`h-4 w-4 text-ink-500 transition-transform duration-200 ease-out ${
+                        isCollapsed ? '-rotate-90' : ''
+                      }`}
+                    />
                     <h2 className="font-display text-xl text-ink-900">{topic}</h2>
                     <span className="rounded-full bg-cream-200 px-2.5 py-0.5 text-xs font-medium text-ink-500">
                       {topicSets.length}
                     </span>
+                    {mastery !== null && (
+                      <span
+                        title={`Average score across ${finishedSets.length} finished ${
+                          finishedSets.length === 1 ? 'set' : 'sets'
+                        }`}
+                        className={`flex items-center gap-1 ${masteryTone}`}
+                      >
+                        <MiniRing pct={mastery} className="h-4 w-4" />
+                        <span className="text-xs font-medium">{mastery}%</span>
+                      </span>
+                    )}
                   </button>
                   {topic !== UNFILED && topicSets.length === 0 && (
                     <button
                       onClick={() => removeTopic(topic)}
                       title="Remove this empty topic"
-                      className="rounded-full px-2 py-0.5 text-sm text-ink-500 opacity-0 transition group-hover/topic:opacity-100 hover:text-rose-600"
+                      aria-label={`Remove topic ${topic}`}
+                      className="rounded-full p-1 text-ink-500 opacity-0 transition-all duration-200 group-hover/topic:opacity-100 hover:text-rose-600 active:scale-90"
                     >
-                      ✕
+                      <XIcon className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
-                {!isCollapsed &&
-                  (topicSets.length > 0 ? (
-                    <div className="space-y-3">
-                      {topicSets.map((set) => (
-                        <SetCard
-                          key={set.id}
-                          set={set}
-                          topics={allTopics}
-                          onOpenSet={onOpenSet}
-                          onChanged={onChanged}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-cream-400 px-6 py-6 text-center text-sm text-ink-500">
-                      Drag lectures here
-                    </div>
-                  ))}
+                {!isCollapsed && (
+                  <div className="animate-[rise-in_200ms_ease-out]">
+                    {topicSets.length > 0 ? (
+                      <SetList
+                        sets={topicSets}
+                        topics={allTopics}
+                        onOpenSet={onOpenSet}
+                        onChanged={onChanged}
+                      />
+                    ) : (
+                      <div
+                        className={`rounded-2xl border border-dashed px-6 py-6 text-center text-sm transition-colors duration-200 ${
+                          isTarget ? 'border-accent-600/50 text-accent-700' : 'border-cream-400 text-ink-500'
+                        }`}
+                      >
+                        Drag lectures here
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             )
           })}

@@ -6,6 +6,13 @@ export interface Question {
   topic: string
 }
 
+/** Snapshot of a completed run-through of a set, recorded when the quiz finishes */
+export interface Attempt {
+  date: string
+  correct: number
+  total: number
+}
+
 export interface QuestionSet {
   id: string
   title: string
@@ -17,6 +24,8 @@ export interface QuestionSet {
   /** User's chosen option index per question, null if unanswered */
   answers: (number | null)[]
   coachReport: string | null
+  /** Past completed runs, oldest first; absent on sets from older versions */
+  attempts?: Attempt[]
 }
 
 export interface ChatMessage {
