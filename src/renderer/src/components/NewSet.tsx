@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { QuestionSet } from '../../../shared/types'
 import { useLatestStatus } from '../logs'
 
@@ -12,10 +12,18 @@ const COUNTS = [5, 10, 15, 20]
 export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null)
   const [title, setTitle] = useState('')
+  const [topic, setTopic] = useState('')
+  const [existingTopics, setExistingTopics] = useState<string[]>([])
   const [count, setCount] = useState(10)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const status = useLatestStatus('generate')
+
+  useEffect(() => {
+    window.api.listTopics().then((topics) => {
+      setExistingTopics([...topics].sort((a, b) => a.localeCompare(b)))
+    })
+  }, [])
 
   const fileName = filePath?.split('/').pop() ?? null
 
@@ -38,6 +46,7 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
       const { set, generating } = await window.api.generateSet({
         filePath,
         title: title.trim() || fileName || 'Untitled set',
+        topic: topic.trim() || undefined,
         count
       })
       onCreated(set, generating)
@@ -80,6 +89,23 @@ export default function NewSet({ onCreated, onCancel }: Props): React.JSX.Elemen
             placeholder="e.g. Cardiology — Arrhythmias"
             className="w-full rounded-2xl border border-cream-300 bg-white px-5 py-3 text-ink-900 placeholder:text-ink-500/60 focus:border-accent-600/60 focus:outline-none disabled:opacity-50"
           />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-ink-700">Topic (optional)</label>
+          <input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            disabled={loading}
+            list="topic-suggestions"
+            placeholder="e.g. Cardiology — groups this set on the home screen"
+            className="w-full rounded-2xl border border-cream-300 bg-white px-5 py-3 text-ink-900 placeholder:text-ink-500/60 focus:border-accent-600/60 focus:outline-none disabled:opacity-50"
+          />
+          <datalist id="topic-suggestions">
+            {existingTopics.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
         </div>
 
         <div>

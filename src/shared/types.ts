@@ -9,6 +9,8 @@ export interface Question {
 export interface QuestionSet {
   id: string
   title: string
+  /** Folder the set is filed under on the home screen, e.g. "Cardiology" */
+  topic?: string
   createdAt: string
   sourceFile: string
   questions: Question[]
@@ -25,6 +27,7 @@ export interface ChatMessage {
 export interface GenerateSetArgs {
   filePath: string
   title: string
+  topic?: string
   count: number
 }
 

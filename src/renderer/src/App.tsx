@@ -15,6 +15,10 @@ export default function App(): React.JSX.Element {
   const [sets, setSets] = useState<QuestionSet[]>([])
   const [activeSet, setActiveSet] = useState<QuestionSet | null>(null)
   const [generating, setGenerating] = useState(false)
+  /** When set, the quiz runs only these question indices (redo-wrong mode) */
+  const [quizIndices, setQuizIndices] = useState<number[] | null>(null)
+  /** Bumped on every entry into the quiz so the Quiz component remounts fresh */
+  const [quizRun, setQuizRun] = useState(0)
 
   const refreshSets = async (): Promise<void> => {
     setSets(await window.api.listSets())
@@ -27,6 +31,8 @@ export default function App(): React.JSX.Element {
   const openSet = (set: QuestionSet): void => {
     setActiveSet(set)
     setGenerating(false)
+    setQuizIndices(null)
+    setQuizRun((n) => n + 1)
     const finished = set.answers.every((a) => a !== null)
     setView(finished ? 'results' : 'quiz')
   }
@@ -35,6 +41,8 @@ export default function App(): React.JSX.Element {
     refreshSets()
     setActiveSet(set)
     setGenerating(stillGenerating)
+    setQuizIndices(null)
+    setQuizRun((n) => n + 1)
     setView('quiz')
   }
 
@@ -50,8 +58,20 @@ export default function App(): React.JSX.Element {
     if (fresh) {
       setActiveSet(fresh)
       refreshSets()
+      setQuizIndices(null)
+      setQuizRun((n) => n + 1)
       setView('quiz')
     }
+  }
+
+  const handleRedoWrong = (wrongIndices: number[]): void => {
+    if (!activeSet) return
+    const answers = activeSet.answers.map((a, i) => (wrongIndices.includes(i) ? null : a))
+    window.api.saveAnswers(activeSet.id, answers)
+    setActiveSet({ ...activeSet, answers, coachReport: null })
+    setQuizIndices(wrongIndices)
+    setQuizRun((n) => n + 1)
+    setView('quiz')
   }
 
   const goHome = (): void => {
@@ -77,15 +97,21 @@ export default function App(): React.JSX.Element {
         {view === 'new' && <NewSet onCreated={handleCreated} onCancel={goHome} />}
         {view === 'quiz' && activeSet && (
           <Quiz
-            key={activeSet.id}
+            key={`${activeSet.id}:${quizRun}`}
             set={activeSet}
             generating={generating}
+            indices={quizIndices ?? undefined}
             onFinished={handleFinished}
             onExit={goHome}
           />
         )}
         {view === 'results' && activeSet && (
-          <Results set={activeSet} onRetake={handleRetake} onHome={goHome} />
+          <Results
+            set={activeSet}
+            onRetake={handleRetake}
+            onRedoWrong={handleRedoWrong}
+            onHome={goHome}
+          />
         )}
       </div>
       <DevConsole />

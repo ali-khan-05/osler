@@ -19,6 +19,14 @@ const api = {
   saveAnswers: (id: string, answers: (number | null)[]): Promise<void> =>
     ipcRenderer.invoke('save-answers', { id, answers }),
   resetSet: (id: string): Promise<QuestionSet | null> => ipcRenderer.invoke('reset-set', id),
+  /** Move a set to a topic folder; null removes it from any topic */
+  setTopic: (id: string, topic: string | null): Promise<void> =>
+    ipcRenderer.invoke('set-topic', { id, topic }),
+  listTopics: (): Promise<string[]> => ipcRenderer.invoke('list-topics'),
+  /** Returns the updated topic list */
+  addTopic: (name: string): Promise<string[]> => ipcRenderer.invoke('add-topic', name),
+  /** Removes the topic and unfiles its sets; returns the updated topic list */
+  removeTopic: (name: string): Promise<string[]> => ipcRenderer.invoke('remove-topic', name),
   getHint: (args: HintArgs): Promise<string> => ipcRenderer.invoke('get-hint', args),
   getCoach: (id: string): Promise<string> => ipcRenderer.invoke('get-coach', id),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('get-settings'),

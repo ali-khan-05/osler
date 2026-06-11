@@ -38,3 +38,31 @@ export function deleteSet(id: string): void {
   const file = join(setsDir(), `${id}.json`)
   if (fs.existsSync(file)) fs.unlinkSync(file)
 }
+
+// Topics are stored as their own list so empty ones (just created, or drained
+// by drag-and-drop) survive; sets reference them by name via set.topic.
+function topicsFile(): string {
+  return join(app.getPath('userData'), 'topics.json')
+}
+
+export function listTopics(): string[] {
+  try {
+    return JSON.parse(fs.readFileSync(topicsFile(), 'utf-8'))
+  } catch {
+    return []
+  }
+}
+
+export function saveTopics(topics: string[]): void {
+  fs.writeFileSync(topicsFile(), JSON.stringify(topics, null, 2))
+}
+
+/** Make sure a topic referenced by a set exists in the stored list. */
+export function ensureTopic(name: string | undefined): void {
+  if (!name) return
+  const topics = listTopics()
+  if (!topics.includes(name)) {
+    topics.push(name)
+    saveTopics(topics)
+  }
+}

@@ -6,6 +6,8 @@ interface Props {
   set: QuestionSet
   /** true while later batches of this set are still being generated */
   generating: boolean
+  /** When set, run through only these question indices (e.g. redoing wrong answers) */
+  indices?: number[]
   onFinished: (set: QuestionSet) => void
   onExit: () => void
 }
@@ -15,11 +17,16 @@ const LETTERS = ['A', 'B', 'C', 'D', 'E']
 export default function Quiz({
   set,
   generating: initialGenerating,
+  indices,
   onFinished,
   onExit
 }: Props): React.JSX.Element {
-  const firstUnanswered = set.answers.findIndex((a) => a === null)
-  const [index, setIndex] = useState(firstUnanswered === -1 ? 0 : firstUnanswered)
+  // `pos` is the position within the run order, not the question index itself
+  const [pos, setPos] = useState(() => {
+    const initialOrder = indices ?? set.questions.map((_, i) => i)
+    const firstUnanswered = initialOrder.findIndex((qi) => set.answers[qi] === null)
+    return firstUnanswered === -1 ? 0 : firstUnanswered
+  })
   const [questions, setQuestions] = useState(set.questions)
   const [answers, setAnswers] = useState<(number | null)[]>(set.answers)
   const [generating, setGenerating] = useState(initialGenerating)
@@ -35,24 +42,26 @@ export default function Quiz({
     })
   }, [set.id])
 
-  const question = questions[index]
-  const chosen = answers[index]
+  const order = indices ?? questions.map((_, i) => i)
+  const qIndex = order[pos]
+  const question = questions[qIndex]
+  const chosen = answers[qIndex]
   const answered = chosen !== null
-  const total = questions.length
-  const answeredCount = answers.filter((a) => a !== null).length
-  const waitingForMore = index === total - 1 && generating
+  const total = order.length
+  const answeredCount = order.filter((qi) => answers[qi] !== null).length
+  const waitingForMore = !indices && pos === total - 1 && generating
 
   const choose = (optionIndex: number): void => {
     if (answered) return
     const next = [...answers]
-    next[index] = optionIndex
+    next[qIndex] = optionIndex
     setAnswers(next)
     window.api.saveAnswers(set.id, next)
   }
 
   const goNext = (): void => {
-    if (index < total - 1) {
-      setIndex(index + 1)
+    if (pos < total - 1) {
+      setPos(pos + 1)
     } else {
       onFinished({ ...set, questions, answers })
     }
@@ -107,7 +116,7 @@ export default function Quiz({
         <div className="flex-1 overflow-y-auto px-8 py-8">
           <div className="mx-auto max-w-3xl">
             <p className="mb-3 text-sm font-medium tracking-wide text-accent-600">
-              QUESTION {index + 1} OF {total}
+              QUESTION {pos + 1} OF {total}
             </p>
             <p className="font-display text-lg leading-relaxed text-ink-900 whitespace-pre-wrap">
               {question.stem}
@@ -154,8 +163,8 @@ export default function Quiz({
 
         <footer className="flex items-center justify-between border-t border-cream-300 px-8 py-4">
           <button
-            onClick={() => setIndex(Math.max(0, index - 1))}
-            disabled={index === 0}
+            onClick={() => setPos(Math.max(0, pos - 1))}
+            disabled={pos === 0}
             className="rounded-full border border-cream-300 px-5 py-2 text-sm font-medium text-ink-700 transition hover:border-accent-600/40 disabled:opacity-30"
           >
             ← Previous
@@ -167,7 +176,7 @@ export default function Quiz({
           >
             {waitingForMore && answered
               ? 'More questions coming…'
-              : index === total - 1
+              : pos === total - 1
                 ? 'Finish & get coaching'
                 : 'Next →'}
           </button>
@@ -175,7 +184,7 @@ export default function Quiz({
       </div>
 
       {/* Hint chat sidebar */}
-      <ChatPanel key={index} question={question} answered={answered} />
+      <ChatPanel key={qIndex} question={question} answered={answered} />
     </div>
   )
 }

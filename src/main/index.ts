@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { config } from 'dotenv'
-import { listSets, getSet, saveSet, deleteSet } from './store'
+import { listSets, getSet, saveSet, deleteSet, listTopics, saveTopics, ensureTopic } from './store'
 import { generateQuestions, getHint, getCoachReport } from './anthropic'
 import { getAppSettings, saveSettings } from './settings'
 import { log, history } from './log'
@@ -82,12 +82,14 @@ app.whenReady().then(() => {
     const set: QuestionSet = {
       id: randomUUID(),
       title: a.title,
+      topic: a.topic,
       createdAt: new Date().toISOString(),
       sourceFile: a.filePath,
       questions,
       answers: questions.map(() => null),
       coachReport: null
     }
+    ensureTopic(set.topic)
     saveSet(set)
     generateRest?.((batch, done) => {
       // Disk is the source of truth — the user is already answering this set
@@ -116,7 +118,39 @@ app.whenReady().then(() => {
     if (!set) return
     // questions may have grown since the renderer sent these answers — pad with nulls
     set.answers = set.questions.map((_, i) => a.answers[i] ?? null)
+    // answers changed, so any existing coach report no longer describes them
+    set.coachReport = null
     saveSet(set)
+  })
+
+  handle('set-topic', (...args) => {
+    const a = args[0] as { id: string; topic: string | null }
+    const set = getSet(a.id)
+    if (!set) return
+    set.topic = a.topic?.trim() || undefined
+    ensureTopic(set.topic)
+    saveSet(set)
+  })
+
+  handle('list-topics', () => listTopics())
+
+  handle('add-topic', (...args) => {
+    const name = (args[0] as string).trim()
+    if (name) ensureTopic(name)
+    return listTopics()
+  })
+
+  handle('remove-topic', (...args) => {
+    const name = args[0] as string
+    saveTopics(listTopics().filter((t) => t !== name))
+    // unfile any sets still under it
+    for (const set of listSets()) {
+      if (set.topic === name) {
+        set.topic = undefined
+        saveSet(set)
+      }
+    }
+    return listTopics()
   })
 
   handle('reset-set', (...args) => {
