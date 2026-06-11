@@ -96,6 +96,37 @@ export function GearIcon({ className }: IconProps): React.JSX.Element {
   )
 }
 
+/**
+ * Brand mark: a terracotta circle holding an EKG trace. When an ancestor with
+ * the `group` class is hovered, the badge beats like a pulse and the trace
+ * redraws itself left-to-right like a live monitor.
+ */
+export function OslerMark({ className }: IconProps): React.JSX.Element {
+  return (
+    <span
+      className={`flex items-center justify-center rounded-full bg-accent-600 text-cream-50 shadow-sm transition-shadow duration-300 group-hover:shadow-md group-hover:shadow-accent-600/35 group-hover:animate-[heartbeat_1.2s_ease-in-out_infinite] ${className ?? ''}`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-[58%] w-[58%]"
+        aria-hidden="true"
+      >
+        <path
+          d="M2 12h4l3-9 6 18 3-9h4"
+          pathLength={100}
+          strokeDasharray={100}
+          className="group-hover:animate-[ekg-dash_1.4s_linear_infinite]"
+        />
+      </svg>
+    </span>
+  )
+}
+
 /** Tiny progress ring used for topic mastery and other inline score displays. */
 export function MiniRing({ pct, className }: { pct: number; className?: string }): React.JSX.Element {
   const r = 7

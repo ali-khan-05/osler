@@ -52,7 +52,9 @@
       "Bash(cat tsconfig.node.json)",
       "Bash(grep -qiE \"ready|Osler ready|electron.*started|VITE.*ready\" /tmp/osler-dev.log)",
       "Bash(break)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(pkill -f \"electron-vite dev\")",
+      "Bash(pkill -f \"Practice qs generator/node_modules/electron\")"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { QuestionSet } from '../../../shared/types'
 import {
   ArrowUpIcon,
@@ -6,6 +6,7 @@ import {
   DotsIcon,
   GearIcon,
   MiniRing,
+  OslerMark,
   PlusIcon,
   XIcon
 } from './icons'
@@ -47,6 +48,16 @@ function CardMenu({
 }): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [showMove, setShowMove] = useState(false)
+  // which side the move submenu flies out on; flips left when the window edge is too close
+  const [flipLeft, setFlipLeft] = useState(false)
+  const moveItemRef = useRef<HTMLDivElement>(null)
+
+  const openMove = (): void => {
+    const rect = moveItemRef.current?.getBoundingClientRect()
+    // submenu is w-44 (176px) plus a 6px gap
+    setFlipLeft(rect ? rect.right + 182 > window.innerWidth : false)
+    setShowMove(true)
+  }
 
   const close = (): void => {
     setOpen(false)
@@ -82,50 +93,66 @@ function CardMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={close} />
-          <div className="absolute top-9 right-0 z-20 w-52 origin-top-right animate-[pop-in_150ms_ease-out] overflow-hidden rounded-xl border border-cream-300 bg-white py-1 shadow-lg">
-            {!showMove ? (
-              <>
-                <button
-                  onClick={() => setShowMove(true)}
-                  className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-ink-700 transition-colors duration-150 hover:bg-cream-100"
+          <div className="absolute top-9 right-0 z-20 w-52 origin-top-right animate-[pop-in_150ms_ease-out] rounded-xl border border-cream-300 bg-white p-1 shadow-lg">
+            <div
+              ref={moveItemRef}
+              className="relative"
+              onMouseEnter={openMove}
+              onMouseLeave={() => setShowMove(false)}
+            >
+              <button
+                onClick={() => (showMove ? setShowMove(false) : openMove())}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-700 transition-colors duration-150 ${
+                  showMove ? 'bg-cream-100' : 'hover:bg-cream-100'
+                }`}
+              >
+                Move to another topic
+                <ChevronIcon className="h-3.5 w-3.5 -rotate-90 text-ink-500" />
+              </button>
+              {showMove && (
+                <div
+                  className={`absolute top-0 z-30 ${flipLeft ? 'right-full pr-1.5' : 'left-full pl-1.5'}`}
                 >
-                  Move to another topic
-                  <ChevronIcon className="h-3.5 w-3.5 -rotate-90 text-ink-500" />
-                </button>
-                <button
-                  onClick={del}
-                  className="block w-full px-4 py-2.5 text-left text-sm text-rose-600 transition-colors duration-150 hover:bg-rose-100"
-                >
-                  Delete lecture
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="px-4 pt-2 pb-1 text-xs font-medium tracking-wide text-ink-500">
-                  MOVE TO
-                </p>
-                {targets.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => move(t)}
-                    className="block w-full truncate px-4 py-2 text-left text-sm text-ink-700 transition-colors duration-150 hover:bg-cream-100"
+                  <div
+                    className={`w-44 animate-[pop-in_150ms_ease-out] overflow-hidden rounded-xl border border-cream-300 bg-white py-1 shadow-lg ${
+                      flipLeft ? 'origin-top-right' : 'origin-top-left'
+                    }`}
                   >
-                    {t}
-                  </button>
-                ))}
-                {set.topic && (
-                  <button
-                    onClick={() => move(null)}
-                    className="block w-full px-4 py-2 text-left text-sm text-ink-500 transition-colors duration-150 hover:bg-cream-100"
-                  >
-                    (no topic)
-                  </button>
-                )}
-                {targets.length === 0 && !set.topic && (
-                  <p className="px-4 py-2 text-sm text-ink-500">No topics yet — add one with ＋</p>
-                )}
-              </>
-            )}
+                    <p className="px-4 pt-2 pb-1 text-xs font-medium tracking-wide text-ink-500">
+                      MOVE TO
+                    </p>
+                    {targets.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => move(t)}
+                        className="block w-full truncate px-4 py-2 text-left text-sm text-ink-700 transition-colors duration-150 hover:bg-cream-100"
+                      >
+                        {t}
+                      </button>
+                    ))}
+                    {set.topic && (
+                      <button
+                        onClick={() => move(null)}
+                        className="block w-full px-4 py-2 text-left text-sm text-ink-500 transition-colors duration-150 hover:bg-cream-100"
+                      >
+                        (no topic)
+                      </button>
+                    )}
+                    {targets.length === 0 && !set.topic && (
+                      <p className="px-4 py-2 text-sm text-ink-500">
+                        No topics yet — add one with ＋
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={del}
+              className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-rose-600 transition-colors duration-150 hover:bg-rose-100"
+            >
+              Delete lecture
+            </button>
           </div>
         </>
       )}
@@ -182,14 +209,16 @@ function SetCard({
         {finished ? (
           <span
             title={trend ? `${trend === 'up' ? 'Up' : 'Down'} from ${prevPct}% last attempt` : undefined}
-            className="flex items-center gap-1 rounded-full bg-sage-100 px-3 py-1 text-sm font-medium text-sage-600"
+            className="flex items-center gap-1 rounded-full bg-sage-100 px-3 py-1 text-sm font-medium text-sage-600 transition-colors duration-200 group-hover:bg-sage-600 group-hover:text-cream-50"
           >
             {pct}% · review
             {trend === 'up' && <ArrowUpIcon className="h-3.5 w-3.5" />}
-            {trend === 'down' && <ArrowUpIcon className="h-3.5 w-3.5 rotate-180 text-rose-600" />}
+            {trend === 'down' && (
+              <ArrowUpIcon className="h-3.5 w-3.5 rotate-180 text-rose-600 transition-colors duration-200 group-hover:text-rose-100" />
+            )}
           </span>
         ) : answered > 0 ? (
-          <span className="rounded-full bg-cream-200 px-3 py-1 text-sm font-medium text-ink-700">
+          <span className="rounded-full bg-cream-200 px-3 py-1 text-sm font-medium text-ink-700 transition-colors duration-200 group-hover:bg-accent-600 group-hover:text-cream-50">
             {answered}/{total} · resume
           </span>
         ) : (
@@ -286,9 +315,14 @@ export default function Home({
   return (
     <div className="mx-auto max-w-4xl px-8 py-12">
       <header className="mb-10 flex items-end justify-between">
-        <div>
-          <h1 className="font-display text-4xl text-ink-900">Osler</h1>
-          <p className="mt-1 text-ink-500">USMLE-style practice questions from your lectures</p>
+        <div className="group flex items-center gap-3.5">
+          <OslerMark className="h-11 w-11 shrink-0" />
+          <div>
+            <h1 className="font-display text-4xl text-ink-900 transition-colors duration-300 group-hover:text-accent-700">
+              Osler
+            </h1>
+            <p className="mt-1 text-ink-500">USMLE-style practice questions from your lectures</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button

@@ -45,7 +45,9 @@ export default function ChatPanel({ question, answered }: Props): React.JSX.Elem
       <div className="border-b border-cream-300 px-5 py-4">
         <p className="font-display text-ink-900">Tutor</p>
         <p className="text-xs text-ink-500">
-          {answered ? 'Ask me anything about this question.' : 'Stuck? Ask for a hint — I won’t give the answer away.'}
+          {answered
+            ? 'Ask me anything about this question.'
+            : 'Ask about the topic, the options, or for a hint.'}
         </p>
       </div>
 
