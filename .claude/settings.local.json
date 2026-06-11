@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npm approve-scripts *)",
+      "Bash(npm rebuild *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(npm run *)",
+      "Bash(timeout 25 npx electron-vite dev)",
+      "Bash(grep -vE \"^$\")",
+      "Bash(node node_modules/electron/install.js)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(node -e ' *)",
+      "Bash(ditto -x -k \"/Users/alikhan/Library/Caches/electron/4b092cc678b6ff8448c5ab35fabca1710dccc91cfbff065280601a184126b0fe/electron-v33.4.11-darwin-arm64.zip\" dist)",
+      "Bash(osascript *)",
+      "Bash(curl -s \"http://localhost:5173/src/main.tsx\")",
+      "Bash(curl -s \"http://localhost:5173/src/App.tsx\")",
+      "Bash(sed -E 's/\\(ANTHROPIC_API_KEY=\\).{0,12}.*/\\\\1<first chars hidden, length shown next>/' .env)",
+      "Bash(awk -F= '/^ANTHROPIC_API_KEY/{print \"key length:\", length\\($2\\)}' .env)",
+      "Read(//Users/alikhan/Library/Application Support/osler/question-sets/**)",
+      "Read(//Users/alikhan/Library/Application Support/**)",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts,null,2\\)\\)\")",
+      "Bash(pkill -f electron-vite)",
+      "Bash(gh auth *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
