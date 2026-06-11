@@ -7,19 +7,9 @@ interface Props {
 
 const MODELS = [
   {
-    id: 'claude-opus-4-8',
-    name: 'Opus 4.8',
-    blurb: 'Most capable — best question quality, slowest and most expensive'
-  },
-  {
-    id: 'claude-sonnet-4-6',
-    name: 'Sonnet 4.6',
-    blurb: 'Balanced quality, speed, and cost'
-  },
-  {
-    id: 'claude-haiku-4-5',
-    name: 'Haiku 4.5',
-    blurb: 'Fastest and cheapest Claude — quality holds up well for slide-based questions'
+    id: 'deepseek/deepseek-v4-pro',
+    name: 'DeepSeek V4 Pro',
+    blurb: 'Very cheap via OpenRouter (~4¢ per question set) with no free-tier queues — needs OpenRouter credit'
   },
   {
     id: 'nvidia/nemotron-3-super-120b-a12b:free',
@@ -36,9 +26,7 @@ const MODELS = [
 export default function Settings({ onBack }: Props): React.JSX.Element {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [model, setModel] = useState('')
-  const [keyInput, setKeyInput] = useState('')
   const [orKeyInput, setOrKeyInput] = useState('')
-  const [showKey, setShowKey] = useState(false)
   const [showOrKey, setShowOrKey] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -51,10 +39,7 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
     })
   }, [])
 
-  const dirty =
-    keyInput.trim() !== '' ||
-    orKeyInput.trim() !== '' ||
-    (settings !== null && model !== settings.model)
+  const dirty = orKeyInput.trim() !== '' || (settings !== null && model !== settings.model)
 
   const save = async (): Promise<void> => {
     setSaving(true)
@@ -63,12 +48,10 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
     try {
       const next = await window.api.saveSettings({
         model: settings && model !== settings.model ? model : undefined,
-        apiKey: keyInput.trim() || undefined,
         openrouterApiKey: orKeyInput.trim() || undefined
       })
       setSettings(next)
       setModel(next.model)
-      setKeyInput('')
       setOrKeyInput('')
       setSaved(true)
     } catch (err) {
@@ -79,18 +62,10 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
     }
   }
 
-  const keyStatus = !settings
-    ? ''
-    : settings.keySource === 'none'
-      ? 'No API key set — Osler cannot reach Claude until you add one.'
-      : settings.keySource === 'env'
-        ? `Currently using the key from the .env file (${settings.maskedApiKey}). Pasting a key here will replace it.`
-        : `Key saved in the app (${settings.maskedApiKey}).`
-
   const orKeyStatus = !settings
     ? ''
     : settings.openRouterKeySource === 'none'
-      ? 'No OpenRouter key set — needed only for the free Nemotron model.'
+      ? 'No OpenRouter key set — Osler cannot generate questions until you add one.'
       : settings.openRouterKeySource === 'env'
         ? `Currently using the key from the .env file (${settings.maskedOpenRouterKey}). Pasting a key here will replace it.`
         : `Key saved in the app (${settings.maskedOpenRouterKey}).`
@@ -137,30 +112,6 @@ export default function Settings({ onBack }: Props): React.JSX.Element {
               Currently using a custom model: <span className="font-medium">{settings.model}</span>
             </p>
           )}
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-ink-700">Anthropic API key</label>
-          <div className="flex gap-2">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              disabled={saving}
-              placeholder="sk-ant-…"
-              autoComplete="off"
-              spellCheck={false}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-5 py-3 font-mono text-sm text-ink-900 placeholder:text-ink-500/60 focus:border-accent-600/60 focus:outline-none disabled:opacity-50"
-            />
-            <button
-              onClick={() => setShowKey((v) => !v)}
-              className="shrink-0 rounded-2xl border border-cream-300 bg-cream-50 px-4 text-sm text-ink-700 transition hover:border-accent-600/40"
-              title={showKey ? 'Hide key' : 'Show key'}
-            >
-              {showKey ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {keyStatus && <p className="mt-2 text-sm text-ink-500">{keyStatus}</p>}
         </div>
 
         <div>
